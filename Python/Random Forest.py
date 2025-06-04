@@ -209,40 +209,6 @@ try:
     
     # Configurar estilo padrão do Matplotlib para evitar fundos cinza
     plt.style.use('default')
-
-    # Plotar histórico de treinamento
-    fig = plt.figure(figsize=(12, 5), facecolor='white')  # Define fundo da figura como branco
-
-    # Gráfico de Perda
-    ax1 = plt.subplot(1, 2, 1)
-    ax1.set_facecolor('white')  # Define fundo do eixo como branco
-    ax1.set_axisbelow(True)  # Garante que a grade fique atrás das linhas
-    plt.plot(history.history['loss'], label='Perda de Treinamento', linewidth=2)
-    plt.plot(history.history['val_loss'], label='Perda de Validação', linewidth=2)
-    plt.title('Evolução da Perda Durante o Treinamento', fontsize=12)
-    plt.xlabel('Época', fontsize=10)
-    plt.ylabel('Perda', fontsize=10)
-    plt.grid(True, linestyle='--', alpha=0.7, color='lightgray')  # Grade clara para contraste
-    plt.legend(fontsize=10)
-    plt.xticks(fontsize=8)
-    plt.yticks(fontsize=8)
-
-    # Gráfico de Acurácia
-    ax2 = plt.subplot(1, 2, 2)
-    ax2.set_facecolor('white')  # Define fundo do eixo como branco
-    ax2.set_axisbelow(True)  # Garante que a grade fique atrás das linhas
-    plt.plot(history.history['accuracy'], label='Acurácia de Treinamento', linewidth=2)
-    plt.plot(history.history['val_accuracy'], label='Acurácia de Validação', linewidth=2)
-    plt.title('Evolução da Acurácia Durante o Treinamento', fontsize=12)
-    plt.xlabel('Época', fontsize=10)
-    plt.ylabel('Acurácia', fontsize=10)
-    plt.grid(True, linestyle='--', alpha=0.7, color='lightgray')  # Grade clara para contraste
-    plt.legend(fontsize=10)
-    plt.xticks(fontsize=8)
-    plt.yticks(fontsize=8)
-
-    plt.tight_layout()
-    plt.show()
     
     # Avaliação do modelo
     print("\nAvaliando o melhor modelo...")
@@ -273,14 +239,26 @@ try:
     plt.title('Matriz de Confusão - Random Forest')
     plt.show()
     
-    # Feature importance
-    feature_importances = best_rf.feature_importances_
+    # Feature importance plot - ordenado
+    importances = best_rf.feature_importances_
+    indices = np.argsort(importances)[::-1]
+
+    feature_names = [
+        'mean', 'std', 'max', 'min', 'median', 'skew', 'kurtosis', 'rms',
+        'peak_to_peak', 'percentile_5', 'percentile_25', 'percentile_75', 'percentile_95',
+        'zero_crossing_rate', 'fft_mean', 'fft_std', 'fft_max', 'fft_energy', 'spectral_centroid',
+        'wavelet_std_c1', 'wavelet_mean_c1', 'wavelet_std_c2', 'wavelet_mean_c2',
+        'wavelet_std_c3', 'wavelet_mean_c3', 'wavelet_std_c4', 'wavelet_mean_c4'
+    ]
+
     plt.figure(figsize=(12, 6))
-    plt.bar(range(len(feature_importances)), feature_importances)
-    plt.title('Importância das Features')
-    plt.xlabel('Índice da Feature')
-    plt.ylabel('Importância')
+    plt.title("Importância das Features")
+    plt.barh(feature_names, importances[indices])
+    plt.xlabel("Importância")
+    plt.ylabel("Features")
+    plt.tight_layout()
     plt.show()
+
 
 except Exception as e:
     print(f"Erro no pipeline: {str(e)}")
