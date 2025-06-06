@@ -20,6 +20,8 @@ from collections import defaultdict
 import random
 from bayes_opt import BayesianOptimization
 from tensorflow.keras import Input
+import zipfile
+import gdown
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -47,7 +49,27 @@ nomes_classes = [
     'OR_Centralizado_007', 'OR_Centralizado_014', 'OR_Centralizado_021'
 ]
 
-cwru_path = r'C:\Users\LCARVA21\Pictures\CWRU_Bearing_NumPy-main\Data\1797 RPM'
+# Path to store the dataset
+local_data_dir = os.path.join(os.path.expanduser('~'), 'CWRU_Bearing_Data')
+local_zip_path = os.path.join(local_data_dir, 'CWRU_Bearing_NumPy.zip')
+extracted_data_dir = os.path.join(local_data_dir, 'CWRU_Bearing_NumPy-main', 'Data', '1797 RPM')
+
+def download_and_extract_cwru():
+    if not os.path.exists(extracted_data_dir):
+        os.makedirs(local_data_dir, exist_ok=True)
+        if not os.path.exists(local_zip_path):
+            print('Downloading CWRU dataset...')
+            gdown.download('https://drive.google.com/uc?id=1l-P6Nlzh_5-JKy8GzKIBgYJYUy4qZbKA', local_zip_path, quiet=False)
+        print('Extracting CWRU dataset...')
+        with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
+            zip_ref.extractall(local_data_dir)
+        print('Extraction complete.')
+    else:
+        print('CWRU dataset already available.')
+
+download_and_extract_cwru()
+
+cwru_path = extracted_data_dir
 
 # ======================================================================
 # FUNÇÕES DE PRÉ-PROCESSAMENTO
@@ -320,6 +342,13 @@ try:
     plt.ylabel('Verdadeiro')
     plt.title('Matriz de Confusão')
     plt.show()
+
+    # After training the final model
+    model.save('cnn_model.keras')
+
+    # Save validation data
+    np.save('X_val_cnn.npy', X_val)
+    np.save('y_val_cnn.npy', y_val)
 
 except Exception as e:
     print(f"Erro no pipeline: {str(e)}")

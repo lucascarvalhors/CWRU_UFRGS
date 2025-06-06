@@ -5,7 +5,7 @@ import time
 import scipy.stats
 import pywt
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import classification_report, confusion_matrix, precision_score, recall_score, f1_score, accuracy_score
 import seaborn as sns
@@ -15,6 +15,9 @@ from scipy.signal import butter, filtfilt
 from collections import defaultdict
 import random
 import warnings
+import zipfile
+import gdown
+import joblib
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -41,7 +44,27 @@ nomes_classes = [
     'OR_Centralizado_007', 'OR_Centralizado_014', 'OR_Centralizado_021'
 ]
 
-cwru_path = r'C:\Users\LCARVA21\Pictures\CWRU_Bearing_NumPy-main\Data\1797 RPM'
+# Path to store the dataset
+local_data_dir = os.path.join(os.path.expanduser('~'), 'CWRU_Bearing_Data')
+local_zip_path = os.path.join(local_data_dir, 'CWRU_Bearing_NumPy.zip')
+extracted_data_dir = os.path.join(local_data_dir, 'CWRU_Bearing_NumPy-main', 'Data', '1797 RPM')
+
+def download_and_extract_cwru():
+    if not os.path.exists(extracted_data_dir):
+        os.makedirs(local_data_dir, exist_ok=True)
+        if not os.path.exists(local_zip_path):
+            print('Downloading CWRU dataset...')
+            gdown.download('https://drive.google.com/uc?id=1l-P6Nlzh_5-JKy8GzKIBgYJYUy4qZbKA', local_zip_path, quiet=False)
+        print('Extracting CWRU dataset...')
+        with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
+            zip_ref.extractall(local_data_dir)
+        print('Extraction complete.')
+    else:
+        print('CWRU dataset already available.')
+
+download_and_extract_cwru()
+
+cwru_path = extracted_data_dir
 
 # ======================================================================
 # FUNÇÕES DE PRÉ-PROCESSAMENTO
@@ -57,7 +80,7 @@ def butter_lowpass_filter(data, cutoff_freq, fs, order=4):
     return filtered_data
 
 def extract_features(signal):
-    """Extract features from time series signal for Random Forest"""
+    """Extract features from time series signal for SVM"""
     features = []
     
     # Time-domain features
@@ -70,18 +93,6 @@ def extract_features(signal):
     features.append(scipy.stats.kurtosis(signal))
     features.append(np.sqrt(np.mean(signal**2)))  # RMS
     
-    # Peak-to-peak amplitude
-    features.append(np.max(signal) - np.min(signal))
-    
-    # Percentiles
-    features.append(np.percentile(signal, 5))
-    features.append(np.percentile(signal, 25))
-    features.append(np.percentile(signal, 75))
-    features.append(np.percentile(signal, 95))
-    
-    # Zero crossing rate
-    features.append(((signal[:-1] * signal[1:]) < 0).sum())
-    
     # Frequency-domain features (using FFT)
     fft_vals = np.abs(fft(signal))
     fft_freq = np.fft.fftfreq(len(signal))
@@ -92,12 +103,6 @@ def extract_features(signal):
     features.append(np.std(fft_vals))
     features.append(np.max(fft_vals))
     features.append(np.sum(fft_vals**2))  # Energy
-    
-    # Spectral centroid
-    if np.sum(fft_vals) > 0:
-        features.append(np.sum(fft_freq[positive_freq] * fft_vals) / np.sum(fft_vals))
-    else:
-        features.append(0.0)
     
     # Wavelet features
     coeffs = pywt.wavedec(signal, 'db4', level=4)
@@ -178,23 +183,21 @@ try:
     X_train = scaler.fit_transform(X_train)
     X_val = scaler.transform(X_val)
     
-    # Treinamento do modelo Random Forest
-    print("\nIniciando o treinamento do modelo Random Forest...")
+    # Treinamento do modelo SVM
+    print("\nIniciando o treinamento do modelo SVM...")
     
     # Parâmetros para busca em grade
     param_grid = {
-        'n_estimators': [100, 200, 300],
-        'max_depth': [None, 10, 20, 30],
-        'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4],
-        'max_features': ['sqrt', 'log2']
+        'C': [0.1, 1, 10, 100],
+        'gamma': ['scale', 'auto', 0.01, 0.1, 1],
+        'kernel': ['rbf', 'poly', 'sigmoid']
     }
     
-    # Criar modelo Random Forest
-    rf = RandomForestClassifier(random_state=42, class_weight='balanced')
+    # Criar modelo SVM
+    svm = SVC(decision_function_shape='ovr', probability=True)
     
     # Busca em grade com validação cruzada
-    grid_search = GridSearchCV(rf, param_grid, cv=3, n_jobs=-1, verbose=2)
+    grid_search = GridSearchCV(svm, param_grid, cv=3, n_jobs=-1, verbose=2)
     
     start_train_time = time.time()
     grid_search.fit(X_train, y_train)
@@ -205,21 +208,18 @@ try:
     print(grid_search.best_params_)
     
     # Obter o melhor modelo
-    best_rf = grid_search.best_estimator_
-    
-    # Configurar estilo padrão do Matplotlib para evitar fundos cinza
-    plt.style.use('default')
+    best_svm = grid_search.best_estimator_
     
     # Avaliação do modelo
     print("\nAvaliando o melhor modelo...")
     start_val_time = time.time()
-    val_accuracy = best_rf.score(X_val, y_val)
+    val_accuracy = best_svm.score(X_val, y_val)
     val_time = time.time() - start_val_time
     print(f"Tempo de avaliação no conjunto de validação: {val_time:.2f} segundos")
     print(f"Acurácia de validação: {val_accuracy:.4f}")
 
     # Predição e métricas
-    y_pred = best_rf.predict(X_val)
+    y_pred = best_svm.predict(X_val)
 
     print("\nMétricas de desempenho:")
     print(f"Acurácia: {accuracy_score(y_val, y_pred):.4f}")
@@ -236,29 +236,15 @@ try:
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=nomes_classes, yticklabels=nomes_classes)
     plt.xlabel('Predito')
     plt.ylabel('Verdadeiro')
-    plt.title('Matriz de Confusão - Random Forest')
-    plt.show()
-    
-    # Feature importance plot - ordenado
-    importances = best_rf.feature_importances_
-    indices = np.argsort(importances)[::-1]
-
-    feature_names = [
-        'mean', 'std', 'max', 'min', 'median', 'skew', 'kurtosis', 'rms',
-        'peak_to_peak', 'percentile_5', 'percentile_25', 'percentile_75', 'percentile_95',
-        'zero_crossing_rate', 'fft_mean', 'fft_std', 'fft_max', 'fft_energy', 'spectral_centroid',
-        'wavelet_std_c1', 'wavelet_mean_c1', 'wavelet_std_c2', 'wavelet_mean_c2',
-        'wavelet_std_c3', 'wavelet_mean_c3', 'wavelet_std_c4', 'wavelet_mean_c4'
-    ]
-
-    plt.figure(figsize=(12, 6))
-    plt.title("Importância das Features")
-    plt.barh(feature_names, importances[indices])
-    plt.xlabel("Importância")
-    plt.ylabel("Features")
-    plt.tight_layout()
+    plt.title('Matriz de Confusão - SVM')
     plt.show()
 
+    # After training the best_svm model
+    joblib.dump(best_svm, 'svm_model.joblib')
+
+    # Save validation data
+    np.save('X_val_svm.npy', X_val)
+    np.save('y_val_svm.npy', y_val)
 
 except Exception as e:
     print(f"Erro no pipeline: {str(e)}")

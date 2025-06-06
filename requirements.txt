@@ -1,0 +1,9 @@
+PyWavelets
+gdown
+pandas
+scipy
+scikit-learn
+tensorflow
+seaborn
+bayesian-optimization
+shap
