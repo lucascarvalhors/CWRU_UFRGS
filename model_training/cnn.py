@@ -133,27 +133,26 @@ def load_cwru_data(sample_size_per_class=None):
 # ======================================================================
 
 def create_cnn(input_shape, filters=64, kernel_size=3, dense_neurons=64, dropout=0.3, l2_reg=0.001):
-    model = Sequential([
-        Conv1D(filters=filters, kernel_size=kernel_size, activation='relu', 
-               kernel_regularizer=l2(l2_reg), input_shape=input_shape),
-        BatchNormalization(),
-        MaxPooling1D(pool_size=2),
-        Dropout(dropout),
-        
-        Conv1D(filters=filters*2, kernel_size=kernel_size, activation='relu', 
-               kernel_regularizer=l2(l2_reg)),
-        BatchNormalization(),
-        MaxPooling1D(pool_size=2),
-        Dropout(dropout),
-        
-        Flatten(),
-        Dense(dense_neurons, activation='relu', kernel_regularizer=l2(l2_reg)),
-        BatchNormalization(),
-        Dropout(dropout),
-        
-        Dense(len(rotulos_cwru), activation='softmax')
-    ])
-    
+    inputs = tf.keras.Input(shape=input_shape)
+    x = Conv1D(filters=filters, kernel_size=kernel_size, activation='relu', 
+               kernel_regularizer=l2(l2_reg))(inputs)
+    x = BatchNormalization()(x)
+    x = MaxPooling1D(pool_size=2)(x)
+    x = Dropout(dropout)(x)
+
+    x = Conv1D(filters=filters*2, kernel_size=kernel_size, activation='relu', 
+               kernel_regularizer=l2(l2_reg))(x)
+    x = BatchNormalization()(x)
+    x = MaxPooling1D(pool_size=2)(x)
+    x = Dropout(dropout)(x)
+
+    x = Flatten()(x)
+    x = Dense(dense_neurons, activation='relu', kernel_regularizer=l2(l2_reg))(x)
+    x = BatchNormalization()(x)
+    x = Dropout(dropout)(x)
+
+    outputs = Dense(len(rotulos_cwru), activation='softmax')(x)
+    model = tf.keras.Model(inputs=inputs, outputs=outputs)
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.001), 
                  loss='sparse_categorical_crossentropy', 
                  metrics=['accuracy'])

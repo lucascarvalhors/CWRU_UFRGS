@@ -1,0 +1,15 @@
+                     precision    recall  f1-score   support
+
+           Ball_007       0.98      0.99      0.98       407
+           Ball_014       0.99      0.98      0.98       414
+           Ball_021       1.00      1.00      1.00       405
+             IR_007       1.00      1.00      1.00       405
+             IR_021       0.98      1.00      0.99       406
+             Normal       1.00      1.00      1.00       405
+OR_Centralizado_007       1.00      1.00      1.00       405
+OR_Centralizado_014       1.00      1.00      1.00       408
+OR_Centralizado_021       1.00      0.98      0.99       410
+
+           accuracy                           0.99      3665
+          macro avg       0.99      0.99      0.99      3665
+       weighted avg       0.99      0.99      0.99      3665
