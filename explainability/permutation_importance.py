@@ -6,11 +6,11 @@ from sklearn.inspection import permutation_importance
 # Utility to load validation data (customize as needed)
 def load_val_data(model_type='rf'):
     if model_type == 'rf':
-        X = np.load('X_val_rf.npy')
-        y = np.load('y_val_rf.npy')
+        X = np.load('../model_training/X_val_rf.npy')
+        y = np.load('../model_training/y_val_rf.npy')
     elif model_type == 'svm':
-        X = np.load('X_val_svm.npy')
-        y = np.load('y_val_svm.npy')
+        X = np.load('../model_training/X_val_svm.npy')
+        y = np.load('../model_training/y_val_svm.npy')
     else:
         raise ValueError('Unknown model type')
     return X, y
@@ -26,7 +26,7 @@ def plot_importance(importances, feature_names, title):
     plt.show()
 
 def explain_rf():
-    model = joblib.load('../random_forest_model.joblib')
+    model = joblib.load('../model_training/random_forest_model.joblib')
     X, y = load_val_data('rf')
     result = permutation_importance(model, X, y, n_repeats=10, random_state=42, n_jobs=-1)
     feature_names = [
@@ -39,7 +39,7 @@ def explain_rf():
     plot_importance(result.importances_mean, feature_names, 'Permutation Importance - Random Forest')
 
 def explain_svm():
-    model = joblib.load('../svm_model.joblib')
+    model = joblib.load('../model_training/svm_model.joblib')
     X, y = load_val_data('svm')
     result = permutation_importance(model, X, y, n_repeats=10, random_state=42, n_jobs=-1)
     feature_names = [
