@@ -22,6 +22,7 @@ from bayes_opt import BayesianOptimization
 from tensorflow.keras import Input
 import zipfile
 import gdown
+import json
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -349,6 +350,36 @@ try:
     # Save validation data
     np.save('X_val_cnn.npy', X_val)
     np.save('y_val_cnn.npy', y_val)
+
+    # Save training history
+    history_dict = {k: [float(v) for v in vals] for k, vals in history.history.items()}
+    with open('cnn_training_history.json', 'w') as f:
+        json.dump(history_dict, f)
+
+    # Save evaluation metrics
+    metrics = {
+        'val_loss': float(val_loss),
+        'val_accuracy': float(val_accuracy),
+        'accuracy': float(accuracy_score(y_val, y_pred_classes)),
+        'precision': float(precision_score(y_val, y_pred_classes, average='macro')),
+        'recall': float(recall_score(y_val, y_pred_classes, average='macro')),
+        'f1_score': float(f1_score(y_val, y_pred_classes, average='macro')),
+        'train_time_sec': float(train_time),
+        'val_time_sec': float(val_time)
+    }
+    with open('cnn_eval_metrics.json', 'w') as f:
+        json.dump(metrics, f)
+
+    # Save confusion matrix
+    np.save('cnn_confusion_matrix.npy', cm)
+
+    # Save classification report
+    with open('cnn_classification_report.txt', 'w') as f:
+        f.write(classification_report(y_val, y_pred_classes, target_names=nomes_classes))
+
+    # Save best hyperparameters
+    with open('cnn_best_hyperparams.json', 'w') as f:
+        json.dump(best_params, f)
 
 except Exception as e:
     print(f"Erro no pipeline: {str(e)}")

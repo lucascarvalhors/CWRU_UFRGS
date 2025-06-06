@@ -18,6 +18,7 @@ import warnings
 import zipfile
 import gdown
 import joblib
+import json
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -245,6 +246,30 @@ try:
     # Save validation data
     np.save('X_val_svm.npy', X_val)
     np.save('y_val_svm.npy', y_val)
+
+    # Save evaluation metrics
+    metrics = {
+        'val_accuracy': float(val_accuracy),
+        'accuracy': float(accuracy_score(y_val, y_pred)),
+        'precision': float(precision_score(y_val, y_pred, average='macro')),
+        'recall': float(recall_score(y_val, y_pred, average='macro')),
+        'f1_score': float(f1_score(y_val, y_pred, average='macro')),
+        'train_time_sec': float(train_time),
+        'val_time_sec': float(val_time)
+    }
+    with open('svm_eval_metrics.json', 'w') as f:
+        json.dump(metrics, f)
+
+    # Save confusion matrix
+    np.save('svm_confusion_matrix.npy', cm)
+
+    # Save classification report
+    with open('svm_classification_report.txt', 'w') as f:
+        f.write(classification_report(y_val, y_pred, target_names=nomes_classes))
+
+    # Save best hyperparameters
+    with open('svm_best_hyperparams.json', 'w') as f:
+        json.dump(grid_search.best_params_, f)
 
 except Exception as e:
     print(f"Erro no pipeline: {str(e)}")

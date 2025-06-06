@@ -18,6 +18,7 @@ import warnings
 import zipfile
 import gdown
 import joblib
+import json
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -288,6 +289,40 @@ try:
     # Save validation data
     np.save('X_val_rf.npy', X_val)
     np.save('y_val_rf.npy', y_val)
+
+    # Save evaluation metrics
+    metrics = {
+        'val_accuracy': float(val_accuracy),
+        'accuracy': float(accuracy_score(y_val, y_pred)),
+        'precision': float(precision_score(y_val, y_pred, average='macro')),
+        'recall': float(recall_score(y_val, y_pred, average='macro')),
+        'f1_score': float(f1_score(y_val, y_pred, average='macro')),
+        'train_time_sec': float(train_time),
+        'val_time_sec': float(val_time)
+    }
+    with open('rf_eval_metrics.json', 'w') as f:
+        json.dump(metrics, f)
+
+    # Save confusion matrix
+    np.save('rf_confusion_matrix.npy', cm)
+
+    # Save classification report
+    with open('rf_classification_report.txt', 'w') as f:
+        f.write(classification_report(y_val, y_pred, target_names=nomes_classes))
+
+    # Save best hyperparameters
+    with open('rf_best_hyperparams.json', 'w') as f:
+        json.dump(grid_search.best_params_, f)
+
+    # Save feature importances
+    feature_names = [
+        'mean', 'std', 'max', 'min', 'median', 'skew', 'kurtosis', 'rms',
+        'peak_to_peak', 'percentile_5', 'percentile_25', 'percentile_75', 'percentile_95',
+        'zero_crossing_rate', 'fft_mean', 'fft_std', 'fft_max', 'fft_energy', 'spectral_centroid',
+        'wavelet_std_c1', 'wavelet_mean_c1', 'wavelet_std_c2', 'wavelet_mean_c2',
+        'wavelet_std_c3', 'wavelet_mean_c3', 'wavelet_std_c4', 'wavelet_mean_c4'
+    ]
+    pd.DataFrame({'feature': feature_names, 'importance': importances}).to_csv('rf_feature_importances.csv', index=False)
 
 except Exception as e:
     print(f"Erro no pipeline: {str(e)}")
